@@ -1,5 +1,6 @@
 package com.emb.server.controller;
 
+import com.emb.server.dto.ApiErrorResponse;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Value;
@@ -52,6 +53,10 @@ public class ChatCompletionController {
                     .map(chunk -> ServerSentEvent.<Object>builder(ChatCompletionChunk.of(chatId, model, chunk)).build())
                     .concatWith(Flux.just(
                             ServerSentEvent.<Object>builder(ChatCompletionChunk.finish(chatId, model)).build(),
+                            ServerSentEvent.<Object>builder("[DONE]").build()
+                    ))
+                    .onErrorResume(ex -> Flux.just(
+                            ServerSentEvent.<Object>builder(ApiErrorResponse.serverError("流式生成异常: " + ex.getMessage())).build(),
                             ServerSentEvent.<Object>builder("[DONE]").build()
                     ));
 
